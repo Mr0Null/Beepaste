@@ -30,6 +30,7 @@ var ACE = {
 
 		editor.setTheme("ace/theme/Dawn");
 	    editor.setAutoScrollEditorIntoView(true);
+	    editor.getSession().setUseWrapMode(true);
 	    editor.setOption("maxLines", 25);
 	    editor.setOption("minLines", 20);
 	    editor.setOptions({fontSize :"13pt"});

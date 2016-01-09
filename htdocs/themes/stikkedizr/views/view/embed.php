@@ -82,6 +82,7 @@ set_language = function(mode) {
 };
 
 set_language("<?php echo $lang_code; ?>");
+editor.getSession().setUseWrapMode(true);
 </script>
 
 <?php

@@ -57,6 +57,7 @@ if(isset($insert)){
 var editor = ace.edit('pasteView');
 editor.setReadOnly(true);
 editor.setAutoScrollEditorIntoView(true);
+editor.setTheme("ace/theme/Dawn");
 editor.setOptions({fontSize :"11pt"});
 
 set_language = function(mode) {
@@ -74,6 +75,7 @@ if(totalH < 300) {
 }
 var oldHeight = $('#pasteView').height();
 $('#pasteView').height(totalH);
+editor.getSession().setUseWrapMode(true);
 editor.renderer.onResize(true);
 </script>
 </section>
