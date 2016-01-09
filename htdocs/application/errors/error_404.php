@@ -8,7 +8,7 @@ header("HTTP/1.1 404 Not Found");
 
 	<head>
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
-		<title>Stikked</title>
+		<title>Bee Pastebin</title>
 				<link rel="stylesheet" href="<?php echo base_url(); ?>themes/default/css/reset.css" type="text/css" />
 		<link rel="stylesheet" href="<?php echo base_url(); ?>themes/default/css/fonts.css" type="text/css" />
 		<link rel="stylesheet" href="<?php echo base_url(); ?>themes/default/css/main.css" type="text/css" media="screen" title="main" charset="utf-8" />

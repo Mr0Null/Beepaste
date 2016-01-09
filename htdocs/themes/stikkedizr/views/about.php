@@ -7,21 +7,17 @@
 		</div>
 	</div>
 	<div class="col-12 col-sm-12 col-lg-12">
-	<p>Stikked is an Open-Source PHP Pastebin, with the aim of keeping a simple and easy to use user interface.</p>
-    <p>Stikked allows you to easily share code with anyone you wish. Here are some features:</p>
-
+	<p>This Site is create in order to make it easy and fast for developers over the world to share their code with others!</p>
+    <p>Some of this site features are:</p>
     <ul>
-        <li>Easy setup</li>
-        <li>Syntaxhighlighting for many languages, including live syntaxhighlighting with CodeMirror</li>
-        <li>Paste replies</li>
-        <li>Diff view between the original paste and the reply</li>
-        <li>An API</li>
-        <li>Trending pastes</li>
-        <li>Anti-Spam features</li>
-        <li>Themes support</li>
+        <li>Syntaxhighlighting for many languages, including live syntaxhighlighting!</li>
+        <li>An API to develop your apps based on pastebin!</li>
         <li>Multilanguage support</li>
-        <li>And many more. View <a href="http://maketecheasier.com/run-your-own-pastebin-with-stikked/2013/01/11">this review</a> or visit the <a href="https://github.com/claudehohl/Stikked">Repo on GitHub</a></li>
+        <li>Creating accounts</li>
+        <li>View your recent pastes using your account!</li>
+        <li>And many more!</li>
     </ul>
+    <h3>Made With <3 from Tehran!</h3>
 	</div>
 </div>
 

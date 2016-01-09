@@ -324,7 +324,7 @@ class GeSHi {
      *
      * @var int
      */
-    var $header_type = GESHI_HEADER_PRE;
+    var $header_type = GESHI_HEADER_DIV;
 
     /**
      * Array of permissions for which lexics should be highlighted
@@ -445,7 +445,7 @@ class GeSHi {
      * The overall style for this code block
      * @var string
      */
-    var $overall_style = 'font-family:monospace;';
+    var $overall_style = 'font-family:monospace; background-color:white;';
 
     /**
      *  The style for the actual code
@@ -481,7 +481,7 @@ class GeSHi {
      * Style for line numbers when GESHI_HEADER_PRE_TABLE is chosen
      * @var string
      */
-    var $table_linenumber_style = 'width:1px;text-align:right;margin:0;padding:0 2px;vertical-align:top;';
+    var $table_linenumber_style = 'width:1px;text-align:right;margin:0;padding:0 8px;vertical-align:top;';
 
     /**
      * Flag for how line numbers are displayed
@@ -500,13 +500,13 @@ class GeSHi {
      * The "nth" value for fancy line highlighting
      * @var int
      */
-    var $line_nth_row = 0;
+    var $line_nth_row = 2;
 
     /**
      * The size of tab stops
      * @var int
      */
-    var $tab_width = 8;
+    var $tab_width = 4;
 
     /**
      * Should we use language-defined tab stop widths?

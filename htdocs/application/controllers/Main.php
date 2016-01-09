@@ -59,16 +59,11 @@ class Main extends CI_Controller
 			$this->use_recaptcha = true;
 		}
 		
-		if (!$this->db->table_exists('sessions')) 
+		if (!$this->db->table_exists('ci_sessions')) 
 		{
 			$this->load->dbforge();
-			
-			if ($this->db->table_exists('ci_sessions')) 
-			{
-				$this->dbforge->drop_table('ci_sessions');
-			}
 			$fields = array(
-				'id' => array(
+				'session_id' => array(
 					'type' => 'VARCHAR',
 					'constraint' => 40,
 					'default' => 0,
@@ -78,24 +73,25 @@ class Main extends CI_Controller
 					'constraint' => 45,
 					'default' => 0,
 				) ,
-				'timestamp' => array(
+				'user_agent' => array(
+					'type' => 'VARCHAR',
+					'constraint' => 50,
+				) ,
+				'last_activity' => array(
 					'type' => 'INT',
 					'constraint' => 10,
 					'unsigned' => TRUE,
 					'default' => 0,
 				) ,
-				'data' => array(
-					'type' => 'BLOB',
+				'session_data' => array(
+					'type' => 'TEXT',
+					'null' => TRUE,
 				) ,
 			);
 			$this->dbforge->add_field($fields);
-			$this->dbforge->add_key('id', true);
-			$this->dbforge->add_key('timestamp');
-			$this->dbforge->create_table('sessions', true);
+			$this->dbforge->add_key('session_id', true);
+			$this->dbforge->create_table('ci_sessions', true);
 		}
-
-		// load this after db has been initialized
-		$this->load->library('session');
 		
 		if (!$this->db->table_exists('pastes')) 
 		{
@@ -168,6 +164,10 @@ class Main extends CI_Controller
 					'constraint' => 10,
 					'default' => 0,
 				) ,
+				'username' => array(
+					'type' => 'VARCHAR',
+					'constraint' => 50
+				)
 			);
 			$this->dbforge->add_field($fields);
 			$this->dbforge->add_key('id', true);
@@ -229,6 +229,32 @@ class Main extends CI_Controller
 			$this->dbforge->add_key('created');
 			$this->dbforge->create_table('trending', true);
 		}
+
+		if (!$this->db->table_exists('users')) {
+			$this->load->dbforge();
+			$fields = array(
+				'userID' => array(
+					'type' => 'INT',
+					'constraint' => 10,
+					'auto_increment' => TRUE,
+				) ,
+				'username' => array(
+					'type' => 'VARCHAR',
+					'constraint' => 50
+				) ,
+				'password' => array(
+					'type' => 'VARCHAR',
+					'constraint' => 50
+				) ,
+				'email' => array(
+					'type' => 'VARCHAR',
+					'constraint' => 50
+				)
+			);
+			$this->dbforge->add_field($fields);
+			$this->dbforge->add_key('userID', true);
+			$this->dbforge->create_table('users', true);
+		}
 		
 		if (!$this->db->field_exists('ip_address', 'pastes')) 
 		{
@@ -266,7 +292,7 @@ class Main extends CI_Controller
 		//ipv6 migration
 		$fields = $this->db->field_data('trending');
 		
-		if (config_item('db_driver') != 'sqlite' && $fields[1]->max_length < 45) 
+		if ($fields[1]->max_length < 45) 
 		{
 			$db_prefix = config_item('db_prefix');
 			
@@ -275,14 +301,14 @@ class Main extends CI_Controller
 				$this->db->query("ALTER TABLE " . $db_prefix . "trending ALTER COLUMN ip_address TYPE VARCHAR(45), ALTER COLUMN ip_address SET NOT NULL, ALTER COLUMN ip_address SET DEFAULT '0'");
 				$this->db->query("ALTER TABLE " . $db_prefix . "pastes ALTER COLUMN ip_address TYPE VARCHAR(45), ALTER COLUMN ip_address SET NOT NULL, ALTER COLUMN ip_address SET DEFAULT '0'");
 				$this->db->query("ALTER TABLE " . $db_prefix . "blocked_ips ALTER COLUMN ip_address TYPE VARCHAR(45), ALTER COLUMN ip_address SET NOT NULL, ALTER COLUMN ip_address SET DEFAULT '0'");
-				$this->db->query("ALTER TABLE " . $db_prefix . "sessions ALTER COLUMN ip_address TYPE VARCHAR(45), ALTER COLUMN ip_address SET NOT NULL, ALTER COLUMN ip_address SET DEFAULT '0'");
+				$this->db->query("ALTER TABLE " . $db_prefix . "ci_sessions ALTER COLUMN ip_address TYPE VARCHAR(45), ALTER COLUMN ip_address SET NOT NULL, ALTER COLUMN ip_address SET DEFAULT '0'");
 			}
 			else
 			{
 				$this->db->query("ALTER TABLE " . $db_prefix . "trending CHANGE COLUMN ip_address ip_address VARCHAR(45) NOT NULL DEFAULT '0'");
 				$this->db->query("ALTER TABLE " . $db_prefix . "pastes CHANGE COLUMN ip_address ip_address VARCHAR(45) NOT NULL DEFAULT '0'");
 				$this->db->query("ALTER TABLE " . $db_prefix . "blocked_ips CHANGE COLUMN ip_address ip_address VARCHAR(45) NOT NULL DEFAULT '0'");
-				$this->db->query("ALTER TABLE " . $db_prefix . "sessions CHANGE COLUMN ip_address ip_address VARCHAR(45) NOT NULL DEFAULT '0'");
+				$this->db->query("ALTER TABLE " . $db_prefix . "ci_sessions CHANGE COLUMN ip_address ip_address VARCHAR(45) NOT NULL DEFAULT '0'");
 			}
 		}
 
@@ -294,7 +320,7 @@ class Main extends CI_Controller
 			if ($field->name == 'title') 
 			{
 				
-				if (config_item('db_driver') != 'sqlite' && $field->max_length < 50) 
+				if ($field->max_length < 50) 
 				{
 					$db_prefix = config_item('db_prefix');
 					
@@ -317,14 +343,14 @@ class Main extends CI_Controller
 		$this->load->helper('form');
 		$data['languages'] = $this->languages->get_languages();
 
-		//codemirror languages
-		$this->load->config('codemirror_languages');
-		$codemirror_languages = config_item('codemirror_languages');
-		$data['codemirror_languages'] = $codemirror_languages;
+		//ace languages
+		$this->load->config('ace_languages');
+		$ace_languages = config_item('ace_languages');
+		$data['ace_languages'] = $ace_languages;
 
-		//codemirror modes
+		//ace modes
 		$cmm = array();
-		foreach ($codemirror_languages as $geshi_name => $l) 
+		foreach ($ace_languages as $geshi_name => $l) 
 		{
 			
 			if (gettype($l) == 'array') 
@@ -332,7 +358,7 @@ class Main extends CI_Controller
 				$cmm[$geshi_name] = $l['mode'];
 			}
 		}
-		$data['codemirror_modes'] = $cmm;
+		$data['ace_modes'] = $cmm;
 
 		//recaptcha
 		$data['use_recaptcha'] = $this->use_recaptcha;
@@ -341,26 +367,26 @@ class Main extends CI_Controller
 		if (!$this->input->post('submit')) 
 		{
 			
-			if (!$this->session->userdata('expire')) 
+			if (!$this->db_session->userdata('expire')) 
 			{
 				$default_expiration = config_item('default_expiration');
-				$this->session->set_userdata('expire', $default_expiration);
+				$this->db_session->set_userdata('expire', $default_expiration);
 			}
 			
-			if (!$this->session->userdata('snipurl')) 
+			if (!$this->db_session->userdata('snipurl')) 
 			{
 				$shorturl_selected = config_item('shorturl_selected');
-				$this->session->set_userdata('snipurl', $shorturl_selected);
+				$this->db_session->set_userdata('snipurl', $shorturl_selected);
 			}
 			
-			if ($this->session->flashdata('settings_changed')) 
+			if ($this->db_session->flashdata('settings_changed')) 
 			{
 				$data['status_message'] = 'Settings successfully changed';
 			}
-			$data['name_set'] = $this->session->userdata('name');
-			$data['expire_set'] = $this->session->userdata('expire');
-			$data['private_set'] = $this->session->userdata('private');
-			$data['snipurl_set'] = $this->session->userdata('snipurl');
+			$data['name_set'] = $this->db_session->userdata('name');
+			$data['expire_set'] = $this->db_session->userdata('expire');
+			$data['private_set'] = $this->db_session->userdata('private');
+			$data['snipurl_set'] = $this->db_session->userdata('snipurl');
 			$data['paste_set'] = $paste;
 			$data['title_set'] = $title;
 			$data['reply'] = $reply;
@@ -377,7 +403,7 @@ class Main extends CI_Controller
 			$data['expire_set'] = $this->input->post('expire');
 			$data['private_set'] = $this->input->post('private');
 			$data['snipurl_set'] = $this->input->post('snipurl');
-			$data['paste_set'] = $this->input->post('code');
+			$data['paste_set'] = $this->input->post('codeBox');
 			$data['title_set'] = $this->input->post('title');
 			$data['reply'] = $this->input->post('reply');
 			$data['lang_set'] = $this->input->post('lang');
@@ -403,7 +429,7 @@ class Main extends CI_Controller
 			//rules
 			$rules = array(
 				array(
-					'field' => 'code',
+					'field' => 'codeBox',
 					'label' => 'Main Paste',
 					'rules' => 'required',
 				) ,
@@ -442,6 +468,7 @@ class Main extends CI_Controller
 			if ($this->form_validation->run() == FALSE) 
 			{
 				$data = $this->_form_prep();
+				$data['boz'] = $this->input->post('codeBox');
 				$this->load->view('home', $data);
 			}
 			else
@@ -466,7 +493,7 @@ class Main extends CI_Controller
 						'snipurl' => $this->input->post('snipurl') ,
 						'private' => $this->input->post('private') ,
 					);
-					$this->session->set_userdata($user_data);
+					$this->db_session->set_userdata($user_data);
 				}
 				redirect($this->pastes->createPaste());
 			}
@@ -565,7 +592,7 @@ class Main extends CI_Controller
 	{
 		$this->_valid_authentication();
 		
-		if (config_item('private_only')) 
+		if (config_item('private_only') || (!isset($_SESSION['isloggedin']) || $_SESSION['isloggedin'] != true)) 
 		{
 			show_404();
 		}
@@ -606,6 +633,11 @@ class Main extends CI_Controller
 			$this->load->view('trends', $data);
 		}
 	}
+
+	/*function login() {
+		$this->_valid_authentication();
+		$this->load->view('login');
+	}*/
 	
 	function view() 
 	{
@@ -617,7 +649,7 @@ class Main extends CI_Controller
 		if ($check) 
 		{
 			
-			if ($this->session->userdata('view_raw')) 
+			if ($this->db_session->userdata('view_raw')) 
 			{
 				redirect('view/raw/' . $this->uri->segment(2));
 			}
@@ -671,7 +703,7 @@ class Main extends CI_Controller
 		$word = $str;
 
 		//save
-		$this->session->set_userdata(array(
+		$this->db_session->set_userdata(array(
 			'captcha' => $word
 		));
 
@@ -691,7 +723,7 @@ class Main extends CI_Controller
 	function _valid_captcha($text) 
 	{
 		
-		if (config_item('enable_captcha') && $this->session->userdata('is_human') === null) 
+		if (config_item('enable_captcha') && $this->db_session->userdata('is_human') === false) 
 		{
 			$this->form_validation->set_message('_valid_captcha', lang('captcha'));
 			
@@ -700,7 +732,7 @@ class Main extends CI_Controller
 				
 				if ($this->_valid_recaptcha()) 
 				{
-					$this->session->set_userdata('is_human', true);
+					$this->db_session->set_userdata('is_human', true);
 					return true;
 				}
 				else
@@ -711,9 +743,9 @@ class Main extends CI_Controller
 			else
 			{
 				
-				if (strtolower($text) == strtolower($this->session->userdata('captcha'))) 
+				if (strtolower($text) == strtolower($this->db_session->userdata('captcha'))) 
 				{
-					$this->session->set_userdata('is_human', true);
+					$this->db_session->set_userdata('is_human', true);
 					return true;
 				}
 				else
@@ -744,7 +776,6 @@ class Main extends CI_Controller
 			$url = "https://www.google.com/recaptcha/api/siteverify?secret=" . $pk . "&response;=" . $rf . "&remoteip;=" . $ra;
 			$response = $this->curl->simple_get($url);
 			$status = json_decode($response, true);
-			$recaptcha_response = new stdClass();
 			
 			if ($status['success']) 
 			{
@@ -857,7 +888,7 @@ class Main extends CI_Controller
 		//check
 		$blocked_words = config_item('blocked_words');
 		$post = $this->input->post();
-		$raw = $post['code'];
+		$raw = $post['codeBox'];
 		
 		if (!$blocked_words) 
 		{
@@ -895,8 +926,8 @@ class Main extends CI_Controller
 			
 			if (!$this->auth_ldap->is_authenticated()) 
 			{
-				$this->session->set_flashdata('tried_to', "/" . $this->uri->uri_string());
-				redirect('/auth');
+				$this->db_session->set_flashdata('tried_to', "/" . $this->uri->uri_string());
+				redirect('/login');
 			}
 		}
 	}

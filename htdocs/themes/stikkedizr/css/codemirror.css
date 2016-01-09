@@ -1,5 +1,5 @@
 .CodeMirror {
-  line-height: 1em;
+  line-height: 1.25em;
   font-family: monospace;
   margin: 10px 0px;
   /* Necessary so the scrollbar can be absolutely positioned within the wrapper on Lion. */
@@ -81,7 +81,7 @@
 }
 blockquote.CodeMirror {
   background-color: #F7F7F9;
-  border-right: 1px solid #eee;
+  
   min-width: 2em;
   height: 100%;
   -webkit-border-top-left-radius: 3px;

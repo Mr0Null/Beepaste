@@ -13,7 +13,7 @@
  * Classes list:
  * - Api extends Main
  */
-include_once ('application/controllers/Main.php');
+include_once ('application/controllers/main.php');
 
 class Api extends Main
 {
@@ -25,6 +25,11 @@ class Api extends Main
 		if (config_item('disable_api')) 
 		{
 			die("The API has been disabled\n");
+		}
+		
+		if (config_item('apikey') != $this->input->get('apikey')) 
+		{
+			die("Invalid API key\n");
 		}
 	}
 	
@@ -39,11 +44,6 @@ class Api extends Main
 	
 	function create() 
 	{
-		
-		if (config_item('apikey') != $this->input->get('apikey')) 
-		{
-			die("Invalid API key\n");
-		}
 		$this->load->model('pastes');
 		$this->load->library('form_validation'); //needed by parent class
 
@@ -89,11 +89,6 @@ class Api extends Main
 	function paste() 
 	{
 		
-		if (config_item('apikey') != $this->input->get('apikey')) 
-		{
-			die("Invalid API key\n");
-		}
-		
 		if (config_item('private_only')) 
 		{
 			show_404();
@@ -117,11 +112,6 @@ class Api extends Main
 	function random() 
 	{
 		
-		if (config_item('apikey') != $this->input->get('apikey')) 
-		{
-			die("Invalid API key\n");
-		}
-		
 		if (config_item('private_only')) 
 		{
 			show_404();
@@ -133,11 +123,6 @@ class Api extends Main
 	
 	function recent() 
 	{
-		
-		if (config_item('apikey') != $this->input->get('apikey')) 
-		{
-			die("Invalid API key\n");
-		}
 		
 		if (config_item('private_only')) 
 		{
@@ -162,11 +147,6 @@ class Api extends Main
 	
 	function trending() 
 	{
-		
-		if (config_item('apikey') != $this->input->get('apikey')) 
-		{
-			die("Invalid API key\n");
-		}
 		
 		if (config_item('private_only')) 
 		{

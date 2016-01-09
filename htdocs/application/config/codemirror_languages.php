@@ -111,7 +111,7 @@ $config['codemirror_languages'] = array(
 		) ,
 	) ,
 	'cpp' => array(
-		'mode' => 'text/x-c++src',
+		'mode' => 'c_cpp',
 		'js' => array(
 			array(
 				'codemirror/mode/clike/clike.js'

@@ -7,7 +7,6 @@
  * - countReplies()
  * - createPaste()
  * - _get_url()
- * - curl_connect()
  * - _shorten_url()
  * - checkPaste()
  * - getPaste()
@@ -57,9 +56,9 @@ class Pastes extends CI_Model
 		$data['created'] = time();
 
 		//this is SO evil… saving the «raw» data with htmlspecialchars :-( (but I have to leave this, because of backwards-compatibility)
-		$data['raw'] = htmlspecialchars($this->_strip_bad_multibyte_chars($this->input->post('code')));
+		$data['raw'] = htmlspecialchars($this->_strip_bad_multibyte_chars($this->input->post('codeBox')));
 		$data['lang'] = htmlspecialchars($this->input->post('lang'));
-		$data['replyto'] = ($this->input->post('reply') === null ? '0' : $this->input->post('reply'));
+		$data['replyto'] = $this->input->post('reply');
 		
 		if ($this->input->post('name')) 
 		{
@@ -85,10 +84,10 @@ class Pastes extends CI_Model
 		{
 			$data['title'] = $this->config->item('unknown_title');
 		}
-		$data['private'] = ($this->input->post('private') === null ? '0' : $this->input->post('private'));
+		$data['private'] = $this->input->post('private');
 		do 
 		{
-			$data['pid'] = substr(md5(md5(mt_rand(0, 1000000) . time())) , rand(0, 24) , 8);
+			$data['pid'] = substr(md5(md5(mt_rand(0, 1000000) . mktime())) , rand(0, 24) , 8);
 			$this->db->select('id');
 			$this->db->where('pid', $data['pid']);
 			$query = $this->db->get('pastes');
@@ -123,7 +122,7 @@ class Pastes extends CI_Model
 		{
 			$format = 'Y-m-d H:i:s';
 			$data['toexpire'] = 1;
-			$data['expire'] = time() + (60 * $this->input->post('expire'));
+			$data['expire'] = mktime() + (60 * $this->input->post('expire'));
 		}
 		
 		if ($this->input->post('snipurl') == false) 
@@ -137,6 +136,9 @@ class Pastes extends CI_Model
 			$data['snipurl'] = $shorturl;
 		}
 		$data['ip_address'] = $this->input->ip_address();
+		if (isset($_SESSION['isloggedin']) && $_SESSION['isloggedin'] == true) {
+			$data['username'] = $_SESSION['username'];
+		}
 		$this->db->insert('pastes', $data);
 		
 		if ($burn) 
@@ -155,264 +157,58 @@ class Pastes extends CI_Model
 		$override_url = $this->config->item('displayurl_override');
 		return ($override_url ? str_replace('$id', $pid, $override_url) : site_url('view/' . $pid));
 	}
-	/**
-	 * Simple cURL connect // Used by _shorten_url
-	 * @param array $opt_array
-	 * @return mixed or boolean false on failure
-	 */
-	private 
-	function curl_connect($opt_array) 
-	{
-		$ch = curl_init();
-		curl_setopt_array($ch, $opt_array);
-		$resp = curl_exec($ch);
-		curl_close($ch);
-		return (empty($resp) ? false : $resp);
-	}
 	private 
 	function _shorten_url($url) 
 	{
-
-		// Check if url shortening should be used
-		$url_shortening_api = $this->config->item('url_shortening_use');
-		$API_DB = array(
-			"googl",
-			"goo.gl",
-			"bitly",
-			"bit.ly",
-			"yourls",
-			"gwgd",
-			"random"
-		);
+		$config_yourls_url = $this->config->item('yourls_url');
 		
-		if ($url_shortening_api !== false) 
+		if ($config_yourls_url) 
 		{
-			
-			if (in_array($url_shortening_api, $API_DB, true)) 
-			{
-				
-				if ($url_shortening_api === "random") 
-				{
-					$url_shortening_consider = $this->config->item('random_url_engines');
-					
-					if (!is_array($url_shortening_consider)) 
-					{
-						
-						if ($url_shortening_consider = @explode(",", preg_replace("/[^a-zA-Z0-9.]+/", "", $url_shortening_consider))) 
-						{
-							
-							if (count($url_shortening_consider) > 1) 
-							{
-								foreach ($url_shortening_consider as $key => $api) 
-								{
-									
-									if (($key = array_search($api, $API_DB)) === false) 
-									{
-										unset($API_DB[$key]);
-									}
-								}
-							}
-						}
-					}
-					else
-					{
-						
-						if (count($url_shortening_consider) > 1) 
-						{
-							foreach ($url_shortening_consider as $key => $api) 
-							{
-								
-								if (($key = array_search($api, $API_DB)) === false) 
-								{
-									unset($API_DB[$key]);
-								}
-							}
-						}
-					}
 
-					// We will use random API in this case
-					$url_shortening_api = false; //Prepare for use in while loop
+			//use yourls
+			$config_yourls_url = $this->config->item('yourls_url');
+			$config_yourls_signature = $this->config->item('yourls_signature');
+			$timestamp = time();
+			$signature = md5($timestamp . $config_yourls_signature);
 
-					// Run through while loop as long as an API which satisfy requirement's isn't found.
-
-					// As satisfied API is considerer any API which is filled and not empty
-
-					while ($url_shortening_api === false && $url_shortening_api !== "random") 
-					{
-						$RAND_API = $API_DB[mt_rand(0, count($API_DB) - 1) ];
-						switch ($RAND_API) 
-						{
-						case "yourls":
-							$var_yourls_url = $this->config->item('yourls_url');
-							$var_yourls_signature = $this->config->item('yourls_signature');
-							if (!empty($var_yourls_url) && !empty($v_yourls_signature)) 
-							{
-								$url_shortening_api = "yourls";
-							}
-						break;
-						case "gwgd":
-						case "gw.gd":
-							$var_gwgd_url = $this->config->item('gwgd_url');
-							if (!empty($var_gwgd_url)) 
-							{
-								$url_shortening_api = "gwgd";
-							}
-						break;
-						case "googl":
-						case "google":
-						case "goo.gl":
-							$var_googl_url_api = $this->config->item('googl_url_api');
-							if (!empty($var_googl_url_api)) 
-							{
-								$url_shortening_api = "googl";
-							}
-						break;
-						case "bitly":
-						case "bit.ly":
-							$var_bitly_url_api = $this->config->item('bitly_url_api');
-							if (!empty($var_bitly_url_api)) 
-							{
-								$url_shortening_api = "bitly";
-							}
-						break;
-						default:
-							$url_shortening_api = false;
-						break;
-						}
-					}
-				}
-
-				// switch: Check which engine should be used
-				switch ($url_shortening_api) 
-				{
-				case "yourls":
-					$config_yourls_url = $this->config->item('yourls_url');
-					$config_yourls_signature = $this->config->item('yourls_signature');
-					$timestamp = time();
-					$prep_data = array(
-						CURLOPT_URL => $config_yourls_url . 'yourls-api.php',
-						CURLOPT_RETURNTRANSFER => true,
-						CURLOPT_POST => true,
-						CURLOPT_POSTFIELDS => array(
-							'url' => $url,
-							'format' => 'simple',
-							'action' => 'shorturl',
-							'signature' => md5($timestamp . $config_yourls_signature) ,
-							'timestamp' => $timestamp
-						)
-					);
-					$fetchResp = $this->curl_connect($prep_data);
-					$shorturl = ((strlen($fetchResp) > 4) ? $fetchResp : false);
-				break;
-				case "gwgd":
-				case "gw.gd":
-
-					//use gwgd
-					$url = urlencode($url);
-					$config_gwgd_url = $this->config->item('gwgd_url');
-					$gwgd_url = ($config_gwgd_url ? $config_gwgd_url : 'http://gw.gd/');
-
-					// Prepare CURL options array
-					$prep_data = array(
-						CURLOPT_URL => $target = $gwgd_url . 'api.php?long=' . $url,
-						CURLOPT_RETURNTRANSFER => true,
-						CURLOPT_ENCODING => 'identity'
-					);
-					$fetchResp = $this->curl_connect($prep_data);
-					$shorturl = ((strlen($fetchResp) > 4) ? $fetchResp : false);
-				break;
-				case "googl":
-				case "google":
-				case "goo.gl":
-
-					// Prepare CURL options array
-					$prep_data = array(
-						CURLOPT_URL => 'https://www.googleapis.com/urlshortener/v1/url?key=' . $this->config->item('googl_url_api') ,
-						CURLOPT_RETURNTRANSFER => true,
-						CURLOPT_SSL_VERIFYPEER => false,
-						CURLOPT_HEADER => false,
-						CURLOPT_HTTPHEADER => array(
-							'Content-type:application/json'
-						) ,
-						CURLOPT_POST => true,
-						CURLOPT_POSTFIELDS => json_encode(array(
-							'longUrl' => $url
-						))
-					);
-					$shorturl = @json_decode($this->curl_connect($prep_data));
-					$shorturl = ((isset($shorturl->id)) ? $shorturl->id : false);
-				break;
-				case "bitly":
-				case "bit.ly":
-					$config_bitly_api = $this->config->item('bitly_url_api');
-					$url = urlencode($url);
-
-					// Prepare CURL options array
-					$prep_data = array(
-						CURLOPT_URL => "https://api-ssl.bitly.com/v3/shorten?access_token={$config_bitly_api}&longUrl={$url}&format=txt",
-						CURLOPT_RETURNTRANSFER => true,
-						CURLOPT_SSL_VERIFYPEER => false
-					);
-					$fetchResp = $this->curl_connect($prep_data);
-					$shorturl = ((strlen($fetchResp) > 4) ? $fetchResp : false);
-				break;
-				default:
-					$shorturl = false;
-				break;
-				}
-			}
-			else
-			{
-				$shorturl = false;
-			}
+			// Init the CURL session
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $config_yourls_url . 'yourls-api.php');
+			curl_setopt($ch, CURLOPT_HEADER, 0);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_POST, 1);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, array(
+				'url' => $url,
+				'format' => 'simple',
+				'action' => 'shorturl',
+				'signature' => $signature,
+				'timestamp' => $timestamp,
+			));
+			$resp = curl_exec($ch);
+			curl_close($ch);
+			$shorturl = (empty($resp) ? false : $resp);
 		}
 		else
 		{
 
-			//  Backward compatibility - Falling back to legacy mode
-			$config_yourls_url = $this->config->item('yourls_url');
-			
-			if ($config_yourls_url) 
-			{
+			//use gdgw
+			$url = urlencode($url);
+			$config_gwgd_url = $this->config->item('gwgd_url');
+			$gwgd_url = ($config_gwgd_url ? $config_gwgd_url : 'http://gw.gd/');
+			$target = $gwgd_url . 'api.php?long=' . $url;
 
-				//use yourls
-				$config_yourls_signature = $this->config->item('yourls_signature');
-				$timestamp = time();
-				$prep_data = array(
-					CURLOPT_URL => $config_yourls_url . 'yourls-api.php',
-					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_POST => true,
-					CURLOPT_POSTFIELDS => array(
-						'url' => $url,
-						'format' => 'simple',
-						'action' => 'shorturl',
-						'signature' => md5($timestamp . $config_yourls_signature) ,
-						'timestamp' => $timestamp
-					)
-				);
-				$fetchResp = $this->curl_connect($prep_data);
-				$shorturl = ((strlen($fetchResp) > 4) ? $fetchResp : false);
-			}
-			else
-			{
-
-				//use gdgw
-				$url = urlencode($url);
-				$config_gwgd_url = $this->config->item('gwgd_url');
-				$gwgd_url = ($config_gwgd_url ? $config_gwgd_url : 'http://gw.gd/');
-
-				// Prepare CURL options array
-				$prep_data = array(
-					CURLOPT_URL => $target = $gwgd_url . 'api.php?long=' . $url,
-					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_ENCODING => 'identity'
-				);
-				$fetchResp = $this->curl_connect($prep_data);
-				$shorturl = ((strlen($fetchResp) > 4) ? $fetchResp : false);
-			}
+			// Init the CURL session
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $target);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_ENCODING, 'identity');
+			$resp = curl_exec($ch);
+			curl_close($ch);
+			$shorturl = (empty($resp) ? false : $resp);
 		}
 		return $shorturl;
 	}
+	
 	function checkPaste($seg = 2) 
 	{
 		
@@ -458,7 +254,8 @@ class Pastes extends CI_Model
 			$data['name'] = $row['name'];
 			$data['lang_code'] = $row['lang'];
 			$data['lang'] = $this->languages->code_to_description($row['lang']);
-			$data['paste'] = $this->process->syntax(htmlspecialchars_decode($row['raw']) , $row['lang']);
+			//$data['paste'] = $this->process->syntax(htmlspecialchars_decode($row['raw']) , $row['lang']);
+			$data['language'] = $row['lang'];
 			$data['created'] = $row['created'];
 			$data['private'] = $row['private'];
 			$data['expire'] = $row['expire'];
@@ -576,13 +373,13 @@ class Pastes extends CI_Model
 			$this->db->insert('trending', array(
 				'paste_id' => $pid,
 				'ip_address' => $this->input->ip_address() ,
-				'created' => time() ,
+				'created' => mktime() ,
 			));
 		}
 
 		//update hits counter every minute
 		
-		if (time() > (60 + $data['hits_updated'])) 
+		if (mktime() > (60 + $data['hits_updated'])) 
 		{
 			$this->calculate_hits($pid, $data['hits']);
 		}
@@ -611,7 +408,7 @@ class Pastes extends CI_Model
 			$this->db->where('pid', $pid);
 			$this->db->update('pastes', array(
 				'hits' => $hits_count,
-				'hits_updated' => time() ,
+				'hits_updated' => mktime() ,
 			));
 		}
 	}
@@ -647,7 +444,7 @@ class Pastes extends CI_Model
 				
 				if ($this->uri->segment(2) == 'rss') 
 				{
-					$data['replies'][$n]['paste'] = $this->process->syntax(htmlspecialchars_decode($row['raw']) , $row['lang']);
+					//$data['replies'][$n]['paste'] = $this->process->syntax(htmlspecialchars_decode($row['raw']) , $row['lang']);
 					$data['replies'][$n]['raw'] = $row['raw'];
 				}
 				$n++;
@@ -663,14 +460,13 @@ class Pastes extends CI_Model
 		$amount = $this->config->item('per_page');
 		$page = ($this->uri->segment($seg) ? $this->uri->segment($seg) : 0);
 		$search = $this->input->get('search');
-		$TABLE = $this->config->item('db_prefix') . "pastes";
 		
 		if ($search) 
 		{
 			$search = '%' . $search . '%';
 
 			// count total results
-			$sql = "SELECT id FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?)";
+			$sql = "SELECT id FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?)";
 			$query = $this->db->query($sql, array(
 				$search,
 				$search,
@@ -678,18 +474,19 @@ class Pastes extends CI_Model
 			$total_rows = $query->num_rows();
 
 			// query
+			
 			if ($this->db->dbdriver == "postgre") 
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT $amount OFFSET $page";
+				$sql = "SELECT id, title, name, created, pid, lang, raw FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT $amount OFFSET $page";
+			}
+			else 
+			if ($root == 'api/recent') 
+			{
+				$sql = "SELECT id, title, name, created, pid, lang, raw FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT 0,15";
 			}
 			else
-			if ($root == 'api/recent')
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT 0,15";
-			}
-			else
-			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT $page,$amount";
+				$sql = "SELECT id, title, name, created, pid, lang, raw FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY created DESC LIMIT $page,$amount";
 			}
 			$query = $this->db->query($sql, array(
 				$search,
@@ -700,7 +497,10 @@ class Pastes extends CI_Model
 		{
 
 			// count total results
-			$sql = "SELECT id FROM $TABLE WHERE private = 0";
+			$sql = "SELECT id FROM pastes WHERE private = 0";
+			if (isset($_SESSION['isloggedin']) && $_SESSION['isloggedin'] == true) {
+					$sql = "SELECT id FROM pastes WHERE username = '".$_SESSION['username']."' ORDER BY created DESC LIMIT $page, $amount";
+			}
 			$query = $this->db->query($sql);
 			$total_rows = $query->num_rows();
 
@@ -708,16 +508,14 @@ class Pastes extends CI_Model
 			
 			if ($this->db->dbdriver == "postgre") 
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 ORDER BY created DESC LIMIT $amount OFFSET $page";
+				//$sql = "SELECT id, title, name, created, pid, lang, raw FROM pastes WHERE private = 0 ORDER BY created DESC LIMIT $amount OFFSET $page";
 			}
-                        else
-                        if ($root == 'api/recent')
-                        {
-                                $sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 ORDER BY created DESC LIMIT 0,15";
-                        }
 			else
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw FROM $TABLE WHERE private = 0 ORDER BY created DESC LIMIT $page,$amount";
+				$sql = "SELECT * FROM pastes WHERE private = 0 ORDER BY created DESC LIMIT $page,$amount";
+				if (isset($_SESSION['isloggedin']) && $_SESSION['isloggedin'] == true) {
+					$sql = "SELECT * FROM pastes WHERE username = '".$_SESSION['username']."' ORDER BY created DESC LIMIT $page, $amount";
+				}
 			}
 			$query = $this->db->query($sql);
 		}
@@ -763,14 +561,13 @@ class Pastes extends CI_Model
 		$amount = $this->config->item('per_page');
 		$page = ($this->uri->segment(2) ? $this->uri->segment(2) : 0);
 		$search = $this->input->get('search');
-		$TABLE = $this->config->item('db_prefix') . "pastes";
 		
 		if ($search) 
 		{
 			$search = '%' . $search . '%';
 
 			// count total results
-			$sql = "SELECT id FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?)";
+			$sql = "SELECT id FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?)";
 			$query = $this->db->query($sql, array(
 				$search,
 				$search,
@@ -781,16 +578,16 @@ class Pastes extends CI_Model
 			
 			if ($this->db->dbdriver == "postgre") 
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT $amount OFFSET $page";
+				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT $amount OFFSET $page";
 			}
 			else 
 			if ($root == "api/trending") 
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT 0,15";
+				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT 0,15";
 			}
 			else
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT $page,$amount";
+				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM pastes WHERE private = 0 AND (title LIKE ? OR raw LIKE ?) ORDER BY hits DESC, created DESC LIMIT $page,$amount";
 			}
 			$query = $this->db->query($sql, array(
 				$search,
@@ -801,7 +598,7 @@ class Pastes extends CI_Model
 		{
 
 			// count total results
-			$sql = "SELECT id FROM $TABLE WHERE private = 0";
+			$sql = "SELECT id FROM pastes WHERE private = 0";
 			$query = $this->db->query($sql);
 			$total_rows = $query->num_rows();
 
@@ -809,16 +606,11 @@ class Pastes extends CI_Model
 			
 			if ($this->db->dbdriver == "postgre") 
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 ORDER BY hits DESC, created DESC LIMIT $amount OFFSET $page";
+				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM pastes WHERE private = 0 ORDER BY hits DESC, created DESC LIMIT $amount OFFSET $page";
 			}
-                        else 
-                        if ($root == "api/trending") 
-                        {
-                                $sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 ORDER BY hits DESC, created DESC LIMIT 0,15";
-                        }
 			else
 			{
-				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM $TABLE WHERE private = 0 ORDER BY hits DESC, created DESC LIMIT $page,$amount";
+				$sql = "SELECT id, title, name, created, pid, lang, raw, hits FROM pastes WHERE private = 0 ORDER BY hits DESC, created DESC LIMIT $page,$amount";
 			}
 			$query = $this->db->query($sql);
 		}
@@ -910,14 +702,13 @@ class Pastes extends CI_Model
 	function cron() 
 	{
 		$now = now();
-		$this->db->select('pid,expire');
 		$this->db->where('toexpire', '1');
 		$query = $this->db->get('pastes');
 		foreach ($query->result_array() as $row) 
 		{
 			$stamp = $row['expire'];
 			
-			if ($now > $stamp AND $stamp != 0) 
+			if ($now > $stamp) 
 			{
 				$this->delete_paste($row['pid']);
 			}
@@ -941,7 +732,6 @@ class Pastes extends CI_Model
 		$this->load->library('process');
 		$this->db->order_by('id', 'RANDOM');
 		$this->db->limit(1);
-		$this->db->where('private', '0');
 		$query = $this->db->get('pastes');
 		
 		if ($query->num_rows() > 0) 
