@@ -1,16 +1,13 @@
-Stikked is an Open-Source PHP Pastebin, with the aim of keeping a simple and easy to use user interface.
+Beepaste is an Open-Source PHP Pastebin, with the aim of keeping a simple and easy to use user interface.
 
-Stikked allows you to easily share code with anyone you wish. Based on the [original Stikked](http://code.google.com/p/stikked/) with lots of bugfixes and improvements.
+Beepaste allows you to easily share code with anyone you wish. Based on the [original Stikked](http://code.google.com/p/stikked/) with lots of bugfixes and improvements.
 
 Here are some features:
 
 * Easy setup
 * Syntax highlighting for many languages, including live syntax highlighting with Ace Editor
-* Paste replies
-* Diff view between the original paste and the reply
 * An API
 * Search pastes
-* Trending pastes
 * Encrypted pastes
 * Burn on reading
 * Anti-Spam features
@@ -31,8 +28,8 @@ http://beepaste.ir
 Installation
 ------------
 
-1. Download stikked from https://github.com/Mr0Robot/Beepaste
-2. Create a user and database for Stikked
+1. Download Beepaste from https://github.com/Mr0Robot/Beepaste
+2. Create a user and database for Beepaste
 3. Copy application/config/stikked.php.dist to application/config/stikked.php
 4. Edit configuration settings in application/config/stikked.php - everything is described there
 5. You're done!
@@ -51,5 +48,5 @@ In the folder doc/, you will find:
 * Webserver example configurations for Apache, Nginx, Lighttpd, Cherokee
 * A troubleshooting guide
 * How to create your own theme
-* How to translate Stikked into your language
-* How to contribute and improve Stikked
+* How to translate Beepaste into your language
+* How to contribute and improve Beepaste
