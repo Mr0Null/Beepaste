@@ -54,28 +54,9 @@ if(isset($insert)){
 		</div>
 	</div>
 <script type="text/javascript">
-
 var editor = ace.edit('pasteView');
 editor.setReadOnly(true);
 editor.setAutoScrollEditorIntoView(true);
-//editor.setOption("minLines", <?php echo substr_count( $raw, "\n" )+1; ?>);
-var autoGrow = function(pasteBox)
-{
-	// after data update
-	var cell = $("div.ace_gutter-layer").find(".ace_gutter-cell:first");
-	var h = 17;
-	var totalH = h * (<?php echo substr_count( $raw, "\n" )+1; ?>) + 2;
-	if(totalH < 300) {
-		totalH = 300;
-	}
-	var oldHeight = $(pasteBox).height();
-	$(pasteBox).height(totalH);
-	//controls.widget.find(":first-child").height($("#editor").height());
-	editor.renderer.onResize(true);
-	//if(goDown && oldHeight != totalH)
-	//	$(window).scrollTop($('body').height());
-};
-autoGrow('#pasteView');
 editor.setOptions({fontSize :"11pt"});
 
 set_language = function(mode) {
@@ -83,6 +64,17 @@ set_language = function(mode) {
 };
 
 set_language("<?php echo $lang_code; ?>");
+
+var cell = $("div.ace_gutter-cell");
+var h = $('div.ace_gutter-cell').height();
+var totalH = h * (editor.getSession().getValue().split('\n').length + 1);
+console.log(h);
+if(totalH < 300) {
+	totalH = 300;
+}
+var oldHeight = $('#pasteView').height();
+$('#pasteView').height(totalH);
+editor.renderer.onResize(true);
 </script>
 </section>
 
