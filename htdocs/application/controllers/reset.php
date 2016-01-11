@@ -103,7 +103,7 @@ class reset extends CI_Controller
 				if ($_GET['action'] = "changePassword") {
 					$token = "use";
 					//$email = $this->input->get('email');
-					$usename = $_SESSION['username'];
+					$username = $_SESSION['username'];
 					$newpassword = $this->input->post('password');
 					if ($this->login_model->setpassword($username, $token, $newpassword) == 0)
 					//	echo "password successfully changed!";
